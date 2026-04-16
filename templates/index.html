@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Chicken Disease Classifier</title></head>
+<body>
+  <h1>Chicken Disease Classifier</h1>
+  <input type="file" id="imageInput" accept="image/*" />
+  <button onclick="predict()">Predict</button>
+  <p id="result"></p>
+
+  <script>
+    async function predict() {
+      const file = document.getElementById("imageInput").files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/predict", { method: "POST", body: formData });
+      const data = await res.json();
+      document.getElementById("result").innerText =
+        `Prediction: ${data.prediction} (${data.confidence}% confidence)`;
+    }
+  </script>
+</body>
+</html>

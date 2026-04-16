@@ -205,3 +205,24 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+# ML / DL artifacts
+artifacts/
+models/
+*.h5
+*.hdf5
+*.keras
+*.pt
+*.pth
+
+# Data files
+data/
+*.csv
+*.zip
+*.tar.gz
+
+# Logs
+logs/
+*.log
+
+# Experiment outputs
+scores.json
