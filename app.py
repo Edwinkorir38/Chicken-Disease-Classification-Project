@@ -1,46 +1,47 @@
-from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
+from flask import Flask, jsonify, request, render_template 
 import os
-import numpy as np
-from PIL import Image
-import io
-import base64
-from cnnClassifier import logger
+from flask_cors import CORS, cross_origin 
+from cnnClassifier.utils.common import decodeImage 
+from cnnClassifier.pipeline.predict import PredictionPipeline 
+
+os.putenv('LANG', 'en_US.UTF-8')
+os.putenv('LC_ALL', 'en_US.UTF-8')
 
 app = Flask(__name__)
 CORS(app)
 
-# Load your trained model
-import tensorflow as tf
-MODEL_PATH = "artifacts/training/model.h5"  # adjust to your actual model path
-model = tf.keras.models.load_model(MODEL_PATH)
 
-CLASSES = ["Coccidiosis", "Healthy"]  # adjust to your classes
+class ClientApp:
+    def __init__(self):
+        self.filename = "inputImage.jpg"
+        self.classifier = PredictionPipeline(filename=self.filename)
 
-def preprocess_image(image_bytes):
-    img = Image.open(io.BytesIO(image_bytes)).resize((224, 224))
-    img_array = np.array(img) / 255.0
-    return np.expand_dims(img_array, axis=0)
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+@app.route("/", methods=['GET'])
+@cross_origin()
+def home():
+    return render_template('index.html')
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    try:
-        file = request.files["file"]
-        img_array = preprocess_image(file.read())
-        predictions = model.predict(img_array)
-        predicted_class = CLASSES[np.argmax(predictions)]
-        confidence = float(np.max(predictions))
-        return jsonify({
-            "prediction": predicted_class,
-            "confidence": round(confidence * 100, 2)
-        })
-    except Exception as e:
-        logger.error(f"Prediction error: {e}")
-        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/train", methods=['GET','POST'])
+@cross_origin()
+def trainRoute():
+    os.system("python main.py")
+    return "Training done successfully!"
+
+
+    
+@app.route("/predict", methods=['POST'])
+@cross_origin()
+def predictRoute():
+    image = request.json['image']
+    decodeImage(image, clApp.filename)
+    result = clApp.classifier.predict()
+    return jsonify(result)
+
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    clApp = ClientApp()
+    app.run(host='0.0.0.0', port=8080, debug= True)
