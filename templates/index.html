@@ -1,21 +1,75 @@
 <!DOCTYPE html>
 <html>
-<head><title>Chicken Disease Classifier</title></head>
+<head>
+  <title>Chicken Disease Classifier</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; text-align: center; }
+    button { padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 5px; font-size: 16px; }
+    button:disabled { background: #aaa; }
+    #preview { max-width: 300px; margin: 20px auto; display: none; }
+    #result { font-size: 20px; font-weight: bold; margin-top: 20px; }
+    .error { color: red; }
+    .success { color: green; }
+  </style>
+</head>
 <body>
-  <h1>Chicken Disease Classifier</h1>
-  <input type="file" id="imageInput" accept="image/*" />
-  <button onclick="predict()">Predict</button>
+  <h1>🐔 Chicken Disease Classifier</h1>
+  <p>Upload a chicken fecal image to detect disease</p>
+
+  <input type="file" id="imageInput" accept="image/*" onchange="previewImage()" />
+  <br/><br/>
+  <img id="preview" src="" alt="Preview" />
+  <br/>
+  <button id="predictBtn" onclick="predict()" disabled>Predict</button>
   <p id="result"></p>
 
   <script>
+    function previewImage() {
+      const file = document.getElementById("imageInput").files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const preview = document.getElementById("preview");
+        preview.src = e.target.result;
+        preview.style.display = "block";
+        document.getElementById("predictBtn").disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
     async function predict() {
       const file = document.getElementById("imageInput").files[0];
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/predict", { method: "POST", body: formData });
-      const data = await res.json();
-      document.getElementById("result").innerText =
-        `Prediction: ${data.prediction} (${data.confidence}% confidence)`;
+      if (!file) { alert("Please select an image first!"); return; }
+
+      const resultEl = document.getElementById("result");
+      resultEl.innerText = "Analyzing...";
+      resultEl.className = "";
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const base64Image = e.target.result.split(",")[1];
+        try {
+          const res = await fetch("/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: base64Image })
+          });
+          const data = await res.json();
+          if (data[0] && data[0].image) {
+            resultEl.innerText = `Result: ${data[0].image}`;
+            resultEl.className = "success";
+          } else if (data.error) {
+            resultEl.innerText = `Error: ${data.error}`;
+            resultEl.className = "error";
+          } else {
+            resultEl.innerText = `Result: ${JSON.stringify(data)}`;
+          }
+        } catch (err) {
+          resultEl.innerText = "Error connecting to server.";
+          resultEl.className = "error";
+        }
+      };
+      reader.readAsDataURL(file);
     }
   </script>
 </body>
